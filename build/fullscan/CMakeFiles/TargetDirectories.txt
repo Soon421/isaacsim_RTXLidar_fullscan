@@ -1,0 +1,10 @@
+/home/soon/projects/fullscan/build/fullscan/CMakeFiles/uninstall.dir
+/home/soon/projects/fullscan/build/fullscan/CMakeFiles/fullscan_uninstall.dir
+/home/soon/projects/fullscan/build/fullscan/CMakeFiles/fullscan_node.dir
+/home/soon/projects/fullscan/build/fullscan/CMakeFiles/test.dir
+/home/soon/projects/fullscan/build/fullscan/CMakeFiles/edit_cache.dir
+/home/soon/projects/fullscan/build/fullscan/CMakeFiles/rebuild_cache.dir
+/home/soon/projects/fullscan/build/fullscan/CMakeFiles/list_install_components.dir
+/home/soon/projects/fullscan/build/fullscan/CMakeFiles/install.dir
+/home/soon/projects/fullscan/build/fullscan/CMakeFiles/install/local.dir
+/home/soon/projects/fullscan/build/fullscan/CMakeFiles/install/strip.dir

@@ -1,0 +1,8 @@
+source;share/fullscan/hook/cmake_prefix_path.ps1
+source;share/fullscan/hook/cmake_prefix_path.dsv
+source;share/fullscan/hook/cmake_prefix_path.sh
+source;share/fullscan/local_setup.bash
+source;share/fullscan/local_setup.dsv
+source;share/fullscan/local_setup.ps1
+source;share/fullscan/local_setup.sh
+source;share/fullscan/local_setup.zsh

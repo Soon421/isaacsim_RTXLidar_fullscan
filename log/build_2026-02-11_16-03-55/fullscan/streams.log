@@ -1,0 +1,27 @@
+[0.006s] Invoking command in '/home/soon/projects/fullscan/build/fullscan': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/humble /usr/bin/cmake --build /home/soon/projects/fullscan/build/fullscan -- -j16 -l16
+[0.022s] [35m[1mConsolidate compiler generated dependencies of target fullscan_node[0m
+[0.029s] [ 50%] [32mBuilding CXX object CMakeFiles/fullscan_node.dir/src/fullscan_node.cpp.o[0m
+[3.639s] [100%] [32m[1mLinking CXX executable fullscan_node[0m
+[3.815s] [100%] Built target fullscan_node
+[3.819s] Invoked command in '/home/soon/projects/fullscan/build/fullscan' returned '0': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/humble /usr/bin/cmake --build /home/soon/projects/fullscan/build/fullscan -- -j16 -l16
+[3.823s] Invoking command in '/home/soon/projects/fullscan/build/fullscan': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/humble /usr/bin/cmake --install /home/soon/projects/fullscan/build/fullscan
+[3.826s] -- Install configuration: ""
+[3.826s] -- Execute custom install script
+[3.826s] -- Up-to-date symlink: /home/soon/projects/fullscan/install/fullscan/lib/fullscan/fullscan_node
+[3.826s] -- Up-to-date symlink: /home/soon/projects/fullscan/install/fullscan/share/fullscan/launch/fullscan.launch.py
+[3.826s] -- Up-to-date symlink: /home/soon/projects/fullscan/install/fullscan/share/ament_index/resource_index/package_run_dependencies/fullscan
+[3.827s] -- Up-to-date symlink: /home/soon/projects/fullscan/install/fullscan/share/ament_index/resource_index/parent_prefix_path/fullscan
+[3.827s] -- Up-to-date symlink: /home/soon/projects/fullscan/install/fullscan/share/fullscan/environment/ament_prefix_path.sh
+[3.827s] -- Up-to-date symlink: /home/soon/projects/fullscan/install/fullscan/share/fullscan/environment/ament_prefix_path.dsv
+[3.827s] -- Up-to-date symlink: /home/soon/projects/fullscan/install/fullscan/share/fullscan/environment/path.sh
+[3.827s] -- Up-to-date symlink: /home/soon/projects/fullscan/install/fullscan/share/fullscan/environment/path.dsv
+[3.827s] -- Up-to-date symlink: /home/soon/projects/fullscan/install/fullscan/share/fullscan/local_setup.bash
+[3.827s] -- Up-to-date symlink: /home/soon/projects/fullscan/install/fullscan/share/fullscan/local_setup.sh
+[3.827s] -- Up-to-date symlink: /home/soon/projects/fullscan/install/fullscan/share/fullscan/local_setup.zsh
+[3.827s] -- Up-to-date symlink: /home/soon/projects/fullscan/install/fullscan/share/fullscan/local_setup.dsv
+[3.827s] -- Symlinking: /home/soon/projects/fullscan/install/fullscan/share/fullscan/package.dsv
+[3.830s] -- Up-to-date symlink: /home/soon/projects/fullscan/install/fullscan/share/ament_index/resource_index/packages/fullscan
+[3.830s] -- Up-to-date symlink: /home/soon/projects/fullscan/install/fullscan/share/fullscan/cmake/fullscanConfig.cmake
+[3.830s] -- Up-to-date symlink: /home/soon/projects/fullscan/install/fullscan/share/fullscan/cmake/fullscanConfig-version.cmake
+[3.831s] -- Up-to-date symlink: /home/soon/projects/fullscan/install/fullscan/share/fullscan/package.xml
+[3.831s] Invoked command in '/home/soon/projects/fullscan/build/fullscan' returned '0': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/humble /usr/bin/cmake --install /home/soon/projects/fullscan/build/fullscan

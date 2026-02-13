@@ -1,0 +1,4 @@
+source;share/fullscan/local_setup.bash
+source;share/fullscan/local_setup.dsv
+source;share/fullscan/local_setup.sh
+source;share/fullscan/local_setup.zsh
