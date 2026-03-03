@@ -1,1 +1,0 @@
-/home/soon/projects/fullscan/launch/fullscan.launch.py

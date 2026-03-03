@@ -1,1 +1,0 @@
-/home/soon/projects/fullscan/build/fullscan/ament_cmake_core/fullscanConfig-version.cmake

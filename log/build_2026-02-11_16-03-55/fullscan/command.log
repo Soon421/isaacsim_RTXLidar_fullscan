@@ -1,4 +1,0 @@
-Invoking command in '/home/soon/projects/fullscan/build/fullscan': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/humble /usr/bin/cmake --build /home/soon/projects/fullscan/build/fullscan -- -j16 -l16
-Invoked command in '/home/soon/projects/fullscan/build/fullscan' returned '0': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/humble /usr/bin/cmake --build /home/soon/projects/fullscan/build/fullscan -- -j16 -l16
-Invoking command in '/home/soon/projects/fullscan/build/fullscan': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/humble /usr/bin/cmake --install /home/soon/projects/fullscan/build/fullscan
-Invoked command in '/home/soon/projects/fullscan/build/fullscan' returned '0': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/humble /usr/bin/cmake --install /home/soon/projects/fullscan/build/fullscan

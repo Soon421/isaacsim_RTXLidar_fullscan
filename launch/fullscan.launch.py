@@ -16,6 +16,7 @@ def generate_launch_description():
                 'zone_tolerance_deg': 20.0,
                 'timeout_sec': 0.5,
                 'max_points': 300000,
+                'target_hz': 10.0,
                 'use_sim_time': True,
             }],
             output='screen',

@@ -15,6 +15,7 @@ FullScanNode::FullScanNode()
   this->declare_parameter("zone_tolerance_deg", 20.0);
   this->declare_parameter("timeout_sec", 0.5);
   this->declare_parameter("max_points", 300000);
+  this->declare_parameter("target_hz", 10.0);
 
   // 파라미터 읽기
   auto input_topic = this->get_parameter("input_topic").as_string();
@@ -24,6 +25,8 @@ FullScanNode::FullScanNode()
   zone_tolerance_deg_ = this->get_parameter("zone_tolerance_deg").as_double();
   timeout_sec_ = this->get_parameter("timeout_sec").as_double();
   max_points_ = this->get_parameter("max_points").as_int();
+  target_hz_ = this->get_parameter("target_hz").as_double();
+  min_publish_interval_ = 1.0 / target_hz_;
 
   // 버퍼 사전 할당
   buffer_.reserve(max_points_);
@@ -41,8 +44,8 @@ FullScanNode::FullScanNode()
     rclcpp::QoS(10).reliable());
 
   RCLCPP_INFO(this->get_logger(),
-    "FullScan ready: %s -> %s (frame=%s, zones=%d)",
-    input_topic.c_str(), output_topic.c_str(), frame_id_.c_str(), num_zones_);
+    "FullScan ready: %s -> %s (frame=%s, zones=%d, target_hz=%.1f)",
+    input_topic.c_str(), output_topic.c_str(), frame_id_.c_str(), num_zones_, target_hz_);
 }
 
 // =============================================================
@@ -50,6 +53,11 @@ FullScanNode::FullScanNode()
 // =============================================================
 void FullScanNode::on_partial(const sensor_msgs::msg::PointCloud2::SharedPtr msg)
 {
+  // 발행 대기 중이면 새 partial 무시
+  if (pending_publish_) {
+    return;
+  }
+
   // 1. PointCloud2 → Point* 변환 (zero-copy)
   const auto * points = reinterpret_cast<const Point *>(msg->data.data());
   size_t count = msg->width * msg->height;
@@ -71,13 +79,7 @@ void FullScanNode::on_partial(const sensor_msgs::msg::PointCloud2::SharedPtr msg
   double stamp_sec = msg->header.stamp.sec + msg->header.stamp.nanosec * 1e-9;
 
   // 5. zone 등록
-  bool new_zone = is_new_zone(current_azimuth);
-
-  // 디버그 로그
-  RCLCPP_INFO(this->get_logger(),
-    "zones=%zu/%d, az=%.1f, new=%s, pts=%zu",
-    seen_zones_.size(), num_zones_, current_azimuth,
-    new_zone ? "YES" : "dup", count);
+  is_new_zone(current_azimuth);
 
   // 6. 현재 partial을 버퍼에 먼저 추가
   buffer_.insert(buffer_.end(), points, points + count);
@@ -90,20 +92,13 @@ void FullScanNode::on_partial(const sensor_msgs::msg::PointCloud2::SharedPtr msg
 
   // 8. 모든 zone이 모였으면 emit 후 return
   if (static_cast<int>(seen_zones_.size()) >= num_zones_) {
-    RCLCPP_INFO(this->get_logger(),
-      ">>> All %d zones collected! Publishing full scan", num_zones_);
-    emit_full_scan(msg->header.stamp);
-    reset_buffer();
+    try_publish(msg->header.stamp);
     return;
   }
   // timeout 안전장치
   if (first_partial_stamp_ > 0.0 &&
       (stamp_sec - first_partial_stamp_) > timeout_sec_) {
-    RCLCPP_WARN(this->get_logger(),
-      ">>> TIMEOUT: only %zu/%d zones, publishing partial",
-      seen_zones_.size(), num_zones_);
-    emit_full_scan(msg->header.stamp);
-    reset_buffer();
+    try_publish(msg->header.stamp);
   }
 }
 
@@ -137,6 +132,38 @@ bool FullScanNode::is_new_zone(double azimuth)
   }
   seen_zones_.push_back(azimuth);
   return true;
+}
+
+// =============================================================
+// rate limiting: 최소 간격 보장 후 publish
+// =============================================================
+void FullScanNode::try_publish(const builtin_interfaces::msg::Time & stamp)
+{
+  auto now = std::chrono::steady_clock::now();
+  double elapsed = std::chrono::duration<double>(now - last_emit_time_).count();
+
+  if (elapsed >= min_publish_interval_) {
+    // 충분한 시간이 지남 → 즉시 발행
+    emit_full_scan(stamp);
+    reset_buffer();
+    last_emit_time_ = now;
+  } else {
+    // 너무 빠름 → 남은 시간만큼 대기 후 발행
+    double delay = min_publish_interval_ - elapsed;
+    pending_stamp_ = stamp;
+    pending_publish_ = true;
+
+    rate_timer_ = this->create_wall_timer(
+      std::chrono::duration_cast<std::chrono::nanoseconds>(
+        std::chrono::duration<double>(delay)),
+      [this]() {
+        rate_timer_->cancel();
+        emit_full_scan(pending_stamp_);
+        reset_buffer();
+        last_emit_time_ = std::chrono::steady_clock::now();
+        pending_publish_ = false;
+      });
+  }
 }
 
 // =============================================================
@@ -183,9 +210,6 @@ void FullScanNode::emit_full_scan(const builtin_interfaces::msg::Time & stamp)
   out_msg.data.assign(raw, raw + out_msg.row_step);
 
   pub_->publish(out_msg);
-
-  RCLCPP_INFO(this->get_logger(),
-    "Full scan published: %zu points", write_idx_);
 }
 
 // =============================================================

@@ -1,1 +1,0 @@
-/home/soon/projects/fullscan/build/fullscan/ament_cmake_environment_hooks/local_setup.bash

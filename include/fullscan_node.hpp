@@ -5,6 +5,7 @@
 #include <string>
 #include <vector>
 #include <cmath>
+#include <chrono>
 
 // ROS2 Libraries
 #include "rclcpp/rclcpp.hpp"
@@ -32,12 +33,14 @@ private:
   // --- 핵심 로직 함수 ---
   double compute_median_azimuth(const Point * points, size_t count);
   bool is_new_zone(double azimuth);
+  void try_publish(const builtin_interfaces::msg::Time & stamp);
   void emit_full_scan(const builtin_interfaces::msg::Time & stamp);
   void reset_buffer();
 
   // --- ROS2 통신 ---
   rclcpp::Subscription<sensor_msgs::msg::PointCloud2>::SharedPtr sub_;
   rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr pub_;
+  rclcpp::TimerBase::SharedPtr rate_timer_;
 
   // --- 누적 버퍼 ---
   std::vector<Point> buffer_;
@@ -48,12 +51,19 @@ private:
   double prev_azimuth_ = -999.0;
   double first_partial_stamp_ = 0.0;
 
+  // --- rate limiting ---
+  std::chrono::steady_clock::time_point last_emit_time_;
+  builtin_interfaces::msg::Time pending_stamp_;
+  bool pending_publish_ = false;
+  double min_publish_interval_ = 0.1;
+
   // --- 파라미터 ---
   std::string frame_id_ = "velodyne";
   int num_zones_ = 3;
   double zone_tolerance_deg_ = 20.0;
   double timeout_sec_ = 0.5;
   int max_points_ = 300000;
+  double target_hz_ = 10.0;
 };
 
 #endif
