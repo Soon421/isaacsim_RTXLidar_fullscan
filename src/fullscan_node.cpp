@@ -32,10 +32,10 @@ FullScanNode::FullScanNode()
   buffer_.reserve(max_points_);
   seen_zones_.reserve(num_zones_);
 
-  // Subscriber (BEST_EFFORT — Isaac Sim 매칭)
+  // Subscriber (RELIABLE — point_cloud_gt 호환)
   sub_ = this->create_subscription<sensor_msgs::msg::PointCloud2>(
     input_topic,
-    rclcpp::SensorDataQoS(),
+    rclcpp::QoS(10).reliable(),
     std::bind(&FullScanNode::on_partial, this, std::placeholders::_1));
 
   // Publisher (RELIABLE — Nav2 호환)
