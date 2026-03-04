@@ -16,6 +16,10 @@ FullScanNode::FullScanNode()
   this->declare_parameter("timeout_sec", 0.5);
   this->declare_parameter("max_points", 300000);
   this->declare_parameter("target_hz", 10.0);
+  this->declare_parameter("ghost_range_min", 0.4);
+  this->declare_parameter("ghost_elev_bins_max", 40);
+  this->declare_parameter("ghost_z_range_max", 20.0);
+  this->declare_parameter("debug_mode", false);
 
   // 파라미터 읽기
   auto input_topic = this->get_parameter("input_topic").as_string();
@@ -26,6 +30,10 @@ FullScanNode::FullScanNode()
   timeout_sec_ = this->get_parameter("timeout_sec").as_double();
   max_points_ = this->get_parameter("max_points").as_int();
   target_hz_ = this->get_parameter("target_hz").as_double();
+  ghost_range_min_ = this->get_parameter("ghost_range_min").as_double();
+  ghost_elev_bins_max_ = this->get_parameter("ghost_elev_bins_max").as_int();
+  ghost_z_range_max_ = this->get_parameter("ghost_z_range_max").as_double();
+  debug_mode_ = this->get_parameter("debug_mode").as_bool();
   min_publish_interval_ = 1.0 / target_hz_;
 
   // 버퍼 사전 할당
@@ -69,28 +77,42 @@ void FullScanNode::on_partial(const sensor_msgs::msg::PointCloud2::SharedPtr msg
   // 2. median azimuth 계산
   double current_azimuth = compute_median_azimuth(points, count);
 
-  // 3. 중복 프레임 필터링 (이전 partial과 같으면 스킵)
+  // 3. 디버그 출력 (debug_mode일 때)
+  if (debug_mode_) {
+    debug_partial(points, count, current_azimuth);
+  }
+
+  // 4. ghost 필터 적용 (항상)
+  if (is_ghost_partial(points, count)) {
+    if (!debug_mode_) {
+      RCLCPP_WARN_THROTTLE(this->get_logger(), *this->get_clock(), 1000,
+        "Ghost rejected (%zu pts)", count);
+    }
+    return;
+  }
+
+  // 4. 중복 프레임 필터링 (이전 partial과 같으면 스킵)
   if (std::abs(current_azimuth - prev_azimuth_) < 5.0) {
     return;
   }
   prev_azimuth_ = current_azimuth;
 
-  // 4. 타임스탬프 (초 단위)
+  // 5. 타임스탬프 (초 단위)
   double stamp_sec = msg->header.stamp.sec + msg->header.stamp.nanosec * 1e-9;
 
-  // 5. zone 등록
+  // 6. zone 등록
   is_new_zone(current_azimuth);
 
-  // 6. 현재 partial을 버퍼에 먼저 추가
+  // 7. 현재 partial을 버퍼에 먼저 추가
   buffer_.insert(buffer_.end(), points, points + count);
   write_idx_ += count;
 
-  // 7. 타임스탬프 갱신
+  // 8. 타임스탬프 갱신
   if (first_partial_stamp_ <= 0.0) {
     first_partial_stamp_ = stamp_sec;
   }
 
-  // 8. 모든 zone이 모였으면 emit 후 return
+  // 9. 모든 zone이 모였으면 emit 후 return
   if (static_cast<int>(seen_zones_.size()) >= num_zones_) {
     try_publish(msg->header.stamp);
     return;
@@ -118,6 +140,114 @@ double FullScanNode::compute_median_azimuth(const Point * points, size_t count)
   std::nth_element(azimuths.begin(), azimuths.begin() + mid, azimuths.end());
 
   return azimuths[mid];
+}
+
+// =============================================================
+// ghost 판별: (range_min < ghost_range_min_) OR (elev_bins > ghost_elev_bins_max_)
+// =============================================================
+bool FullScanNode::is_ghost_partial(const Point * points, size_t count)
+{
+  // 1. 최근접점 확인 + z 범위 계산 (single pass)
+  float threshold_sq = static_cast<float>(ghost_range_min_ * ghost_range_min_);
+  float z_min = 1e9f;
+  float z_max = -1e9f;
+
+  for (size_t i = 0; i < count; i++) {
+    float range_sq = points[i].x * points[i].x +
+                     points[i].y * points[i].y +
+                     points[i].z * points[i].z;
+    if (range_sq < threshold_sq) {
+      return true;
+    }
+    if (points[i].z < z_min) z_min = points[i].z;
+    if (points[i].z > z_max) z_max = points[i].z;
+  }
+
+  // 2. z 범위 확인
+  if (static_cast<double>(z_max - z_min) > ghost_z_range_max_) {
+    return true;
+  }
+
+  // 3. elevation bins 계산 (0.1° 해상도, -30° ~ +30°)
+  constexpr int NUM_ELEV_BINS = 600;
+  bool elev_occupied[NUM_ELEV_BINS] = {};
+
+  for (size_t i = 0; i < count; i++) {
+    double rh = std::sqrt(static_cast<double>(points[i].x) * points[i].x +
+                          static_cast<double>(points[i].y) * points[i].y);
+    double elevation = std::atan2(static_cast<double>(points[i].z), rh) * 180.0 / M_PI;
+    int bin = static_cast<int>((elevation + 30.0) / 0.1);
+    if (bin >= 0 && bin < NUM_ELEV_BINS) {
+      elev_occupied[bin] = true;
+    }
+  }
+
+  int unique_bins = 0;
+  for (int i = 0; i < NUM_ELEV_BINS; i++) {
+    if (elev_occupied[i]) unique_bins++;
+  }
+
+  return unique_bins > ghost_elev_bins_max_;
+}
+
+// =============================================================
+// 디버그: partial 포인트 특성 상세 분석
+// =============================================================
+void FullScanNode::debug_partial(const Point * points, size_t count, double median_az)
+{
+  double range_min = 1e9;
+  double range_max = 0.0;
+  double range_sum = 0.0;
+  int near_zero_count = 0;
+  int short_range_count = 0;
+  float z_min = 1e9f;
+  float z_max = -1e9f;
+
+  constexpr int NUM_ELEV_BINS = 600;
+  bool elev_occupied[NUM_ELEV_BINS] = {};
+
+  for (size_t i = 0; i < count; i++) {
+    float x = points[i].x;
+    float y = points[i].y;
+    float z = points[i].z;
+
+    double range_3d = std::sqrt(x * x + y * y + z * z);
+    if (range_3d < range_min) range_min = range_3d;
+    if (range_3d > range_max) range_max = range_3d;
+    range_sum += range_3d;
+    if (range_3d < 0.1) near_zero_count++;
+    if (range_3d < 1.0) short_range_count++;
+
+    if (z < z_min) z_min = z;
+    if (z > z_max) z_max = z;
+
+    double range_h = std::sqrt(x * x + y * y);
+    double elevation = std::atan2(z, range_h) * 180.0 / M_PI;
+    int bin = static_cast<int>((elevation + 30.0) / 0.1);
+    if (bin >= 0 && bin < NUM_ELEV_BINS) {
+      elev_occupied[bin] = true;
+    }
+  }
+
+  int elev_bins = 0;
+  for (int i = 0; i < NUM_ELEV_BINS; i++) {
+    if (elev_occupied[i]) elev_bins++;
+  }
+
+  double range_mean = range_sum / count;
+  double density = static_cast<double>(count) / std::max(elev_bins, 1);
+  double z_range = static_cast<double>(z_max - z_min);
+
+  bool is_ghost = (range_min < ghost_range_min_) ||
+                  (elev_bins > ghost_elev_bins_max_) ||
+                  (z_range > ghost_z_range_max_);
+
+  RCLCPP_INFO(this->get_logger(),
+    "[DEBUG] pts=%zu az=%.1f | range=[%.2f, %.2f, %.2f] | elev_bins=%d density=%.1f | "
+    "z=[%.2f, %.2f] zR=%.1f | near_zero=%d short_range=%d | %s",
+    count, median_az, range_min, range_mean, range_max, elev_bins, density,
+    z_min, z_max, z_range, near_zero_count, short_range_count,
+    is_ghost ? ">>> GHOST <<<" : "OK");
 }
 
 // =============================================================

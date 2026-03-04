@@ -32,7 +32,9 @@ private:
 
   // --- 핵심 로직 함수 ---
   double compute_median_azimuth(const Point * points, size_t count);
+  bool is_ghost_partial(const Point * points, size_t count);
   bool is_new_zone(double azimuth);
+  void debug_partial(const Point * points, size_t count, double median_az);
   void try_publish(const builtin_interfaces::msg::Time & stamp);
   void emit_full_scan(const builtin_interfaces::msg::Time & stamp);
   void reset_buffer();
@@ -64,6 +66,10 @@ private:
   double timeout_sec_ = 0.5;
   int max_points_ = 300000;
   double target_hz_ = 10.0;
+  double ghost_range_min_ = 0.4;
+  int ghost_elev_bins_max_ = 40;
+  double ghost_z_range_max_ = 20.0;
+  bool debug_mode_ = false;
 };
 
 #endif
