@@ -4,7 +4,7 @@ from launch_ros.actions import Node
 
 def generate_launch_description():
     return LaunchDescription([
-        # 센서 A
+        # 센서 A (VLP-16)
         Node(
             package='fullscan',
             executable='fullscan_node',
@@ -22,7 +22,7 @@ def generate_launch_description():
             }],
             output='screen',
         ),
-        # 센서 B
+        # 센서 B (VLS-128)
         Node(
             package='fullscan',
             executable='fullscan_node',
@@ -34,7 +34,7 @@ def generate_launch_description():
                 'num_zones': 3,
                 'zone_tolerance_deg': 20.0,
                 'timeout_sec': 0.5,
-                'max_points': 300000,
+                'max_points': 500000,
                 'target_hz': 10.0,
                 'use_sim_time': True,
             }],

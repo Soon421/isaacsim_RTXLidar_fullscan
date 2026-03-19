@@ -6,6 +6,7 @@
 #include <vector>
 #include <cmath>
 #include <chrono>
+#include <fstream>
 
 // ROS2 Libraries
 #include "rclcpp/rclcpp.hpp"
@@ -67,9 +68,10 @@ private:
   int max_points_ = 300000;
   double target_hz_ = 10.0;
   double ghost_range_min_ = 0.4;
-  int ghost_elev_bins_max_ = 40;
-  double ghost_z_range_max_ = 20.0;
   bool debug_mode_ = false;
+
+  // --- 디버그 CSV ---
+  std::ofstream csv_file_;
 };
 
 #endif
